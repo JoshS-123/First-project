@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f0">
+  <title>Market Day — A stock market learning game</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17231f;
+      --muted: #78827b;
+      --paper: #f5f5f0;
+      --card: #fffefa;
+      --line: #e8e9e1;
+      --green: #187a56;
+      --green-light: #e4f2e9;
+      --red: #bd554b;
+      --yellow: #f2c95c;
+      --shadow: 0 8px 26px rgb(34 47 39 / 5%);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.5 "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    }
+
+    button { font: inherit; }
+
+    .shell { max-width: 1200px; margin: auto; padding: 0 34px 50px; }
+
+    header {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 17px; font-weight: 800; letter-spacing: -.5px; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 10px; background: var(--green); color: white; display: grid; place-items: center; font-size: 19px; }
+    .brand small { display: block; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; }
+    .header-right { display: flex; align-items: center; gap: 15px; color: var(--muted); font-size: 13px; }
+    .avatar { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; background: #e7ece5; color: var(--green); font-weight: 800; }
+
+    .intro { padding: 28px 0 20px; display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+    .eyebrow { color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; }
+    h1 { margin: 4px 0 2px; font-size: clamp(25px, 4vw, 33px); line-height: 1.2; letter-spacing: -1.3px; }
+    .intro p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
+    .day-pill { white-space: nowrap; border: 1px solid var(--line); background: var(--card); padding: 9px 14px; border-radius: 11px; font-size: 13px; font-weight: 700; }
+    .day-pill span { color: var(--green); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 4px 0 18px; }
+    .stat { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px 18px; }
+    .stat-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .stat-value { margin-top: 3px; font-size: 22px; font-weight: 750; letter-spacing: -.5px; }
+    .stat-note { margin-left: 7px; color: var(--green); font-size: 11px; font-weight: 700; }
+    .stat-note.negative { color: var(--red); }
+
+    .layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(285px, .85fr); gap: 17px; align-items: start; }
+    .column { display: grid; gap: 17px; }
+    .card { border: 1px solid var(--line); background: var(--card); border-radius: 15px; box-shadow: var(--shadow); }
+    .card-head { display: flex; justify-content: space-between; align-items: center; padding: 17px 19px 13px; }
+    .card-title { font-size: 14px; font-weight: 800; }
+    .card-subtitle { color: var(--muted); font-size: 11px; }
+
+    .market-list { padding: 0 10px 8px; }
+    .stock-row { width: 100%; display: grid; grid-template-columns: 38px minmax(0, 1fr) 100px 100px; gap: 11px; align-items: center; border: 0; border-top: 1px solid #f0f0eb; padding: 13px 10px; text-align: left; background: transparent; color: inherit; cursor: pointer; border-radius: 8px; }
+    .stock-row:hover, .stock-row.selected { background: #f6f8f3; }
+    .stock-row:focus-visible, button:focus-visible { outline: 3px solid #98cbb0; outline-offset: 2px; }
+    .company-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--tint); color: var(--tone); font-weight: 850; }
+    .company-name { font-size: 13px; font-weight: 750; }
+    .company-symbol { margin-top: 1px; color: var(--muted); font-size: 11px; }
+    .price { text-align: right; font-weight: 750; font-size: 13px; }
+    .change { text-align: right; font-size: 11px; font-weight: 700; }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+
+    .chart-card { overflow: hidden; }
+    .chart-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 19px 0; }
+    .selected-company { display: flex; align-items: center; gap: 10px; }
+    .selected-company .company-icon { width: 33px; height: 33px; }
+    .chart-price { font-size: 21px; font-weight: 800; letter-spacing: -.6px; }
+    .chart-change { margin-left: 8px; font-size: 11px; font-weight: 700; }
+    .chart-wrap { height: 180px; padding: 6px 12px 0; position: relative; }
+    canvas { width: 100%; height: 100%; display: block; }
+    .chart-label { position: absolute; bottom: 8px; left: 20px; right: 20px; display: flex; justify-content: space-between; color: #a0a79f; font-size: 10px; pointer-events: none; }
+
+    .trade-card { padding: 17px 19px 19px; }
+    .trade-top { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+    .trade-top h2 { margin: 0; font-size: 14px; }
+    .trade-top p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .trade-tabs { display: flex; gap: 4px; background: #f0f1ec; border-radius: 9px; padding: 3px; }
+    .trade-tabs button { border: 0; padding: 5px 11px; color: var(--muted); background: transparent; border-radius: 7px; cursor: pointer; font-size: 11px; font-weight: 750; }
+    .trade-tabs button.active { background: white; color: var(--ink); box-shadow: 0 1px 3px #00000012; }
+    .trade-controls { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+    .stepper { display: flex; align-items: center; height: 40px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+    .stepper button { width: 35px; height: 100%; border: 0; background: transparent; color: var(--ink); font-size: 19px; cursor: pointer; }
+    .stepper button:hover { background: #f3f5ef; }
+    .stepper input { width: 42px; border: 0; outline: 0; text-align: center; font: inherit; font-size: 13px; font-weight: 750; color: var(--ink); background: transparent; }
+    .trade-estimate { flex: 1; text-align: right; color: var(--muted); font-size: 11px; }
+    .trade-estimate strong { display: block; color: var(--ink); font-size: 13px; }
+    .trade-button { width: 100%; margin-top: 12px; border: 0; border-radius: 9px; padding: 11px; background: var(--green); color: white; cursor: pointer; font-size: 13px; font-weight: 800; transition: background .15s, transform .15s; }
+    .trade-button:hover { background: #116747; transform: translateY(-1px); }
+    .trade-button.sell { background: #343e39; }
+    .trade-button.sell:hover { background: #202a25; }
+    .trade-note { min-height: 17px; margin-top: 8px; color: var(--muted); text-align: center; font-size: 10px; }
+
+    .lesson { padding: 18px 19px; background: #f2f7ef; border-color: #e2ecdf; box-shadow: none; }
+    .lesson-label { color: #65824a; font-size: 10px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }
+    .lesson h2 { margin: 5px 0 5px; font-size: 15px; }
+    .lesson p { margin: 0; color: #59685c; font-size: 12px; line-height: 1.6; }
+    .lesson em { color: var(--ink); font-style: normal; font-weight: 750; }
+
+    .news { padding: 14px 18px 16px; }
+    .news-heading { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 800; }
+    .live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #e2a840; }
+    .news p { margin: 6px 0 0; color: #606b64; font-size: 11px; line-height: 1.55; }
+    .advance { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px; background: var(--card); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 800; transition: .15s; }
+    .advance:hover:not(:disabled) { border-color: #aac9b5; background: #f1f8f2; }
+    .advance:disabled { cursor: default; opacity: .6; }
+    .advance span { color: var(--green); }
+    .disclaimer { margin: 20px 0 0; color: #959c95; font-size: 10px; text-align: center; }
+    .toast { position: fixed; left: 50%; bottom: 24px; z-index: 3; transform: translate(-50%, 15px); opacity: 0; pointer-events: none; background: #24352b; color: white; padding: 10px 16px; border-radius: 10px; box-shadow: var(--shadow); font-size: 12px; transition: .2s; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+    @media (max-width: 780px) {
+      .shell { padding: 0 18px 34px; }
+      .layout { grid-template-columns: 1fr; }
+      .column { grid-template-columns: 1fr 1fr; align-items: start; }
+      .lesson { grid-row: span 2; }
+    }
+    @media (max-width: 540px) {
+      .shell { padding: 0 13px 25px; }
+      header { height: 64px; }
+      .header-right > span { display: none; }
+      .intro { padding: 22px 0 15px; }
+      .intro p { max-width: 260px; font-size: 12px; }
+      .day-pill { padding: 7px 9px; font-size: 11px; }
+      .stats { gap: 7px; }
+      .stat { padding: 11px 10px; }
+      .stat-label { font-size: 10px; }
+      .stat-value { font-size: 17px; }
+      .stat-note { display: block; margin: 0; font-size: 9px; }
+      .column { display: flex; flex-direction: column; }
+      .column > * { width: 100%; }
+      .lesson { order: 0; }
+      .news { order: 1; }
+      .advance { order: 2; }
+      .stock-row { grid-template-columns: 35px minmax(0, 1fr) 78px 75px; gap: 7px; padding-left: 5px; padding-right: 5px; }
+      .company-icon { width: 33px; height: 33px; }
+      .chart-wrap { height: 155px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand"><div class="brand-mark">↗</div><div>little ledger<small>learn by playing</small></div></div>
+      <div class="header-right"><span>Practice portfolio</span><div class="avatar">Y</div></div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div>
+          <div class="eyebrow">Your first portfolio</div>
+          <h1>Make your money make sense.</h1>
+          <p>Buy a little, learn a lot. This is a practice game, not real investing.</p>
+        </div>
+        <div class="day-pill">Market closes in <span id="days-left">10 days</span></div>
+      </section>
+
+      <section class="stats" aria-label="Portfolio summary">
+        <div class="stat"><div class="stat-label">Portfolio value</div><div class="stat-value" id="net-worth">$1,000.00 <span class="stat-note" id="return-note">+0.0%</span></div></div>
+        <div class="stat"><div class="stat-label">Buying power</div><div class="stat-value" id="cash-value">$1,000.00</div></div>
+        <div class="stat"><div class="stat-label">Stocks owned</div><div class="stat-value" id="stocks-owned">0 <span class="stat-note">shares</span></div></div>
+      </section>
+
+      <div class="layout">
+        <div class="column">
+          <section class="card chart-card" aria-label="Selected stock price chart">
+            <div class="chart-head">
+              <div class="selected-company">
+                <div class="company-icon" id="chart-icon">S</div>
+                <div><div class="company-name" id="chart-name">Sunbeam Energy</div><div class="company-symbol" id="chart-symbol">SUN · Clean energy</div></div>
+              </div>
+              <div><span class="chart-price" id="chart-price">$42.00</span><span class="chart-change positive" id="chart-change">+0.0%</span></div>
+            </div>
+            <div class="chart-wrap"><canvas id="price-chart" aria-label="Stock price history"></canvas><div class="chart-label"><span>DAY 1</span><span>NOW</span></div></div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><div class="card-title">The market</div><div class="card-subtitle">Choose a company to explore</div></div>
+            <div class="market-list" id="market-list"></div>
+          </section>
+        </div>
+
+        <aside class="column">
+          <section class="card trade-card">
+            <div class="trade-top">
+              <div><h2 id="trade-heading">Trade Sunbeam Energy</h2><p id="trade-subheading">SUN · $42.00 per share</p></div>
+              <div class="trade-tabs" role="group" aria-label="Trade type">
+                <button class="active" id="buy-tab" type="button">Buy</button>
+                <button id="sell-tab" type="button">Sell</button>
+              </div>
+            </div>
+            <div class="trade-controls">
+              <div class="stepper"><button type="button" id="minus" aria-label="Remove one share">−</button><input id="shares-input" type="number" min="1" max="999" value="1" aria-label="Number of shares"><button type="button" id="plus" aria-label="Add one share">+</button></div>
+              <div class="trade-estimate">Estimated total<strong id="estimate">$42.00</strong></div>
+            </div>
+            <button type="button" class="trade-button" id="trade-button">Buy 1 share</button>
+            <div class="trade-note" id="trade-note" aria-live="polite">Fractional shares aren't part of this game.</div>
+          </section>
+
+          <section class="card lesson">
+            <div class="lesson-label">Tiny lesson · <span id="lesson-day">Day 1</span></div>
+            <h2 id="lesson-title">What is a share?</h2>
+            <p id="lesson-copy">A share is a tiny piece of a company. If you buy one share of Sunbeam, you own a small piece of its business. <em>Its price can go up or down.</em></p>
+          </section>
+
+          <section class="card news">
+            <div class="news-heading"><span><span class="live-dot"></span>Market note</span><span id="news-day">TODAY</span></div>
+            <p id="news-copy">The market is open. Pick a company, then make your first trade.</p>
+          </section>
+
+          <button class="advance" type="button" id="advance-button">Finish the day <span>→</span></button>
+        </aside>
+      </div>
+      <p class="disclaimer">All companies and prices are fictional. The stock market involves risk; this game is for learning, not financial advice.</p>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const companies = [
+        { symbol: "SUN", name: "Sunbeam Energy", sector: "Clean energy", icon: "S", tone: "#b28118", tint: "#f8f0d7", price: 42, volatility: 0.045 },
+        { symbol: "MINT", name: "Mint & Main", sector: "Everyday goods", icon: "M", tone: "#428263", tint: "#e5f2e9", price: 28, volatility: 0.025 },
+        { symbol: "NOVA", name: "Nova Robotics", sector: "Technology", icon: "N", tone: "#5b67a7", tint: "#e9eafa", price: 65, volatility: 0.07 }
+      ];
+      const lessons = [
+        ["What is a share?", "A share is a tiny piece of a company. If you buy one share, you own a small piece of its business. <em>Its price can go up or down.</em>"],
+        ["Price isn't the whole story", "A stock's price reflects what buyers and sellers are willing to pay. A higher-priced share isn't automatically a better company. <em>Look at what the business does, too.</em>"],
+        ["Risk and reward", "Some stocks swing more than others. Bigger price moves can mean bigger gains—or losses. <em>Volatility is a reason to be thoughtful, not to panic.</em>"],
+        ["Diversification", "Owning different kinds of companies can keep one bad day from deciding everything. <em>Spreading your investments is called diversification.</em>"],
+        ["You don't have to trade", "Prices move every day, but trading often isn't a requirement. A long-term investor may hold through ordinary ups and downs. <em>Patience is a strategy, too.</em>"],
+        ["A gain isn't guaranteed", "Past price moves don't tell you exactly what happens next. Even a company doing well can have a falling stock price. <em>Investing always involves risk.</em>"],
+        ["What is a dividend?", "Some companies share a portion of their profits with shareholders. This is called a dividend—but not every company pays one, and it can change."],
+        ["Cash has a purpose", "Keeping some money uninvested means it's available for later opportunities. <em>You don't have to spend all your buying power.</em>"],
+        ["Zoom out", "A single day's move is just one snapshot. Investors often consider their goals and time horizon instead of reacting to every price change."],
+        ["Your own plan", "There isn't one perfect portfolio for everyone. Goals, time, and comfort with risk all matter. <em>Learning the basics is a great first step.</em>"]
+      ];
+      const events = [
+        { text: "A sunny forecast lifts clean-energy enthusiasm.", effects: { SUN: 0.07, MINT: 0.01, NOVA: -0.02 } },
+        { text: "Shoppers are spending steadily this week.", effects: { SUN: -0.01, MINT: 0.055, NOVA: 0.01 } },
+        { text: "A new robotics demo gets investors talking.", effects: { SUN: 0.01, MINT: -0.01, NOVA: 0.09 } },
+        { text: "Investors take a cautious breather across the market.", effects: { SUN: -0.045, MINT: -0.025, NOVA: -0.07 } },
+        { text: "A quiet trading day brings modest market moves.", effects: { SUN: 0.01, MINT: 0.008, NOVA: -0.012 } },
+        { text: "A supply delay makes the news for energy makers.", effects: { SUN: -0.065, MINT: 0.01, NOVA: 0.025 } },
+        { text: "Mint & Main reports a popular new product launch.", effects: { SUN: 0.015, MINT: 0.07, NOVA: -0.01 } },
+        { text: "A tech conference puts Nova Robotics in the spotlight.", effects: { SUN: -0.01, MINT: 0.01, NOVA: 0.065 } },
+        { text: "The broader market is upbeat, though every stock differs.", effects: { SUN: 0.035, MINT: 0.025, NOVA: 0.05 } },
+        { text: "The final bell is near; long-term plans matter more than one day's move.", effects: { SUN: 0.02, MINT: -0.01, NOVA: 0.015 } }
+      ];
+
+      let cash = 1000;
+      let day = 1;
+      let selected = companies[0];
+      let mode = "buy";
+      let finished = false;
+      let toastTimer;
+      const holdings = Object.fromEntries(companies.map(c => [c.symbol, 0]));
+      companies.forEach(c => c.history = [c.price]);
+      const $ = id => document.getElementById(id);
+      const money = n => "$" + n.toFixed(2);
+      const sharesInput = $("shares-input");
+
+      function currentWorth() {
+        return cash + companies.reduce((sum, c) => sum + c.price * holdings[c.symbol], 0);
+      }
+
+      function toast(message) {
+        const el = $("toast");
+        el.textContent = message;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 2100);
+      }
+
+      function renderMarket() {
+        $("market-list").innerHTML = companies.map(c => {
+          const change = ((c.price / c.history[0]) - 1) * 100;
+          return `<button type="button" class="stock-row ${c === selected ? "selected" : ""}" data-symbol="${c.symbol}" aria-pressed="${c === selected}">
+            <div class="company-icon" style="--tint:${c.tint};--tone:${c.tone}">${c.icon}</div>
+            <div><div class="company-name">${c.name}</div><div class="company-symbol">${c.symbol} · ${c.sector}</div></div>
+            <div class="price">${money(c.price)}<div class="company-symbol">${holdings[c.symbol]} owned</div></div>
+            <div class="change ${change >= 0 ? "positive" : "negative"}">${change >= 0 ? "+" : ""}${change.toFixed(1)}%</div>
+          </button>`;
+        }).join("");
+        document.querySelectorAll(".stock-row").forEach(row => row.addEventListener("click", () => {
+          selected = companies.find(c => c.symbol === row.dataset.symbol);
+          render();
+        }));
+      }
+
+      function renderChart() {
+        const canvas = $("price-chart");
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const values = selected.history;
+        const low = Math.min(...values) * .94;
+        const high = Math.max(...values) * 1.06;
+        const x = i => 7 + (i / Math.max(1, values.length - 1)) * (w - 14);
+        const y = value => h - 15 - ((value - low) / (high - low || 1)) * (h - 30);
+        ctx.strokeStyle = "#eceee8";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          const gy = 17 + i * (h - 35) / 2;
+          ctx.beginPath(); ctx.moveTo(6, gy); ctx.lineTo(w - 6, gy); ctx.stroke();
+        }
+        const rising = values[values.length - 1] >= values[0];
+        const color = rising ? "#28845e" : "#c5665b";
+        const gradient = ctx.createLinearGradient(0, 0, 0, h);
+        gradient.addColorStop(0, rising ? "rgba(40,132,94,.17)" : "rgba(197,102,91,.16)");
+        gradient.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.beginPath();
+        values.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+        ctx.lineTo(x(values.length - 1), h - 5);
+        ctx.lineTo(x(0), h - 5);
+        ctx.closePath(); ctx.fillStyle = gradient; ctx.fill();
+        ctx.beginPath();
+        values.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+        ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke();
+        const lastX = x(values.length - 1), lastY = y(values[values.length - 1]);
+        ctx.beginPath(); ctx.arc(lastX, lastY, 4, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+      }
+
+      function renderTrade() {
+        const quantity = Math.max(1, Math.floor(Number(sharesInput.value) || 1));
+        sharesInput.value = quantity;
+        const total = quantity * selected.price;
+        const owned = holdings[selected.symbol];
+        $("trade-heading").textContent = `Trade ${selected.name}`;
+        $("trade-subheading").textContent = `${selected.symbol} · ${money(selected.price)} per share`;
+        $("estimate").textContent = money(total);
+        $("buy-tab").classList.toggle("active", mode === "buy");
+        $("sell-tab").classList.toggle("active", mode === "sell");
+        $("trade-button").classList.toggle("sell", mode === "sell");
+        $("trade-button").textContent = `${mode === "buy" ? "Buy" : "Sell"} ${quantity} ${quantity === 1 ? "share" : "shares"}`;
+        $("trade-note").textContent = mode === "buy"
+          ? total > cash ? `You have ${money(cash)} available.` : "Fractional shares aren't part of this game."
+          : owned === 0 ? "You don't own any shares of this company yet." : `You own ${owned} ${owned === 1 ? "share" : "shares"}.`;
+        $("trade-button").disabled = finished || (mode === "buy" ? total > cash : quantity > owned);
+        $("trade-button").style.opacity = $("trade-button").disabled ? ".55" : "1";
+      }
+
+      function renderLesson() {
+        const lesson = lessons[Math.min(day - 1, lessons.length - 1)];
+        $("lesson-day").textContent = `Day ${day}`;
+        $("lesson-title").textContent = lesson[0];
+        $("lesson-copy").innerHTML = lesson[1];
+      }
+
+      function render() {
+        const worth = currentWorth();
+        const returnPct = (worth / 1000 - 1) * 100;
+        $("net-worth").innerHTML = `${money(worth)} <span class="stat-note ${returnPct < 0 ? "negative" : ""}" id="return-note">${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%</span>`;
+        $("cash-value").textContent = money(cash);
+        $("stocks-owned").innerHTML = `${Object.values(holdings).reduce((a, b) => a + b, 0)} <span class="stat-note">shares</span>`;
+        const selectedChange = ((selected.price / selected.history[0]) - 1) * 100;
+        $("chart-icon").textContent = selected.icon;
+        $("chart-icon").style.setProperty("--tint", selected.tint);
+        $("chart-icon").style.setProperty("--tone", selected.tone);
+        $("chart-name").textContent = selected.name;
+        $("chart-symbol").textContent = `${selected.symbol} · ${selected.sector}`;
+        $("chart-price").textContent = money(selected.price);
+        $("chart-change").textContent = `${selectedChange >= 0 ? "+" : ""}${selectedChange.toFixed(1)}%`;
+        $("chart-change").className = `chart-change ${selectedChange >= 0 ? "positive" : "negative"}`;
+        $("days-left").textContent = finished ? "complete" : `${11 - day} ${11 - day === 1 ? "day" : "days"}`;
+        $("news-day").textContent = `DAY ${day}`;
+        renderMarket();
+        renderTrade();
+        renderLesson();
+        renderChart();
+      }
+
+      function trade() {
+        const quantity = Math.max(1, Math.floor(Number(sharesInput.value) || 1));
+        const total = quantity * selected.price;
+        if (mode === "buy") {
+          if (total > cash) return toast("Not enough buying power for that trade.");
+          cash -= total;
+          holdings[selected.symbol] += quantity;
+          toast(`Bought ${quantity} ${selected.symbol} ${quantity === 1 ? "share" : "shares"}.`);
+        } else {
+          if (quantity > holdings[selected.symbol]) return toast("You don't own that many shares.");
+          cash += total;
+          holdings[selected.symbol] -= quantity;
+          toast(`Sold ${quantity} ${selected.symbol} ${quantity === 1 ? "share" : "shares"}.`);
+        }
+        render();
+      }
+
+      function advanceDay() {
+        if (finished) return;
+        const event = events[day - 1];
+        companies.forEach(company => {
+          const noise = (Math.random() - .5) * company.volatility;
+          const movement = event.effects[company.symbol] + noise;
+          company.price = Math.max(2, company.price * (1 + movement));
+          company.history.push(company.price);
+        });
+        day++;
+        if (day > 10) {
+          day = 10;
+          finished = true;
+          $("news-copy").textContent = `${event.text} The market closes! Your final portfolio is ${money(currentWorth())}.`;
+          const finalReturn = (currentWorth() / 1000 - 1) * 100;
+          $("advance-button").innerHTML = `Play again <span>↻</span>`;
+          $("advance-button").disabled = false;
+          $("advance-button").onclick = resetGame;
+          $("lesson-title").textContent = "Your first market week";
+          $("lesson-copy").innerHTML = `You finished with <em>${money(currentWorth())}</em> (${finalReturn >= 0 ? "+" : ""}${finalReturn.toFixed(1)}%). Whether it went up or down, you practiced buying, selling, and living with uncertainty.`;
+        } else {
+          $("news-copy").textContent = event.text;
+          $("advance-button").innerHTML = `Finish the day <span>→</span>`;
+        }
+        render();
+        if (finished) {
+          $("news-copy").textContent = `${event.text} The market closes! Your final portfolio is ${money(currentWorth())}.`;
+          $("lesson-title").textContent = "Your first market week";
+          const finalReturn = (currentWorth() / 1000 - 1) * 100;
+          $("lesson-copy").innerHTML = `You finished with <em>${money(currentWorth())}</em> (${finalReturn >= 0 ? "+" : ""}${finalReturn.toFixed(1)}%). Whether it went up or down, you practiced buying, selling, and living with uncertainty.`;
+          $("days-left").textContent = "complete";
+        }
+      }
+
+      function resetGame() {
+        cash = 1000; day = 1; finished = false; mode = "buy";
+        companies.forEach(c => { c.price = ({ SUN: 42, MINT: 28, NOVA: 65 })[c.symbol]; c.history = [c.price]; holdings[c.symbol] = 0; });
+        $("news-copy").textContent = "The market is open. Pick a company, then make your first trade.";
+        $("advance-button").onclick = advanceDay;
+        $("advance-button").innerHTML = `Finish the day <span>→</span>`;
+        render();
+      }
+
+      $("buy-tab").addEventListener("click", () => { mode = "buy"; renderTrade(); });
+      $("sell-tab").addEventListener("click", () => { mode = "sell"; renderTrade(); });
+      $("minus").addEventListener("click", () => { sharesInput.value = Math.max(1, (Number(sharesInput.value) || 1) - 1); renderTrade(); });
+      $("plus").addEventListener("click", () => { sharesInput.value = Math.min(999, (Number(sharesInput.value) || 1) + 1); renderTrade(); });
+      sharesInput.addEventListener("input", renderTrade);
+      $("trade-button").addEventListener("click", trade);
+      $("advance-button").addEventListener("click", advanceDay);
+      window.addEventListener("resize", renderChart);
+      render();
+    })();
+  </script>
+</body>
+</html>
